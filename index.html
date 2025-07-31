@@ -11,6 +11,7 @@
       background: #111;
       color: #fff;
       margin: 0;
+      transition: background-color 0.3s, color 0.3s;
     }
     input {
       padding: 10px;
@@ -18,6 +19,10 @@
       font-size: 18px;
       width: 48%;
       box-sizing: border-box;
+      background: #222;
+      border: none;
+      color: #fff;
+      border-radius: 4px;
     }
     #inputs {
       margin-bottom: 20px;
@@ -28,6 +33,15 @@
       cursor: pointer;
       width: 100%;
       margin-top: 10px;
+      background: #007bff;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    #startBtn:hover {
+      background: #0056b3;
     }
     #playback {
       display: none;
@@ -41,22 +55,75 @@
       align-items: center;
       font-size: 28px;
       min-height: 50px;
+      max-width: 90vw;
+      margin: auto;
+      gap: 10px;
     }
     .face {
       width: 2em;
-      margin: 0 10px;
+      font-size: 2em;
+      user-select: none;
     }
     .msg {
       max-width: 60%;
       word-break: break-word;
+      background: #222;
+      padding: 10px 15px;
+      border-radius: 15px;
+      user-select: text;
+      color: #fff;
     }
     #backBtn {
       position: fixed;
       top: 0; left: 0;
       width: 60px; height: 60px;
-      opacity: 0; z-index: 999;
+      opacity: 0;
+      z-index: 999;
+      cursor: pointer;
+      user-select: none;
+    }
+    /* Theme toggle button */
+    #themeToggle {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      font-size: 24px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s;
+      z-index: 1000;
+    }
+    #themeToggle:hover {
+      background: #666;
     }
 
+    /* Light theme */
+    body.light {
+      background: #fefefe;
+      color: #111;
+    }
+    body.light input {
+      background: #eee;
+      color: #111;
+    }
+    body.light #startBtn {
+      background: #0066cc;
+      color: white;
+    }
+    body.light #startBtn:hover {
+      background: #004d99;
+    }
+    body.light .msg {
+      background: #ddd;
+      color: #111;
+    }
+    /* Responsive */
     @media (max-width: 600px) {
       input {
         font-size: 16px;
@@ -79,6 +146,14 @@
   <div id="backBtn"></div>
   <div id="chatBox" class="line"></div>
 </div>
+
+<!-- Hidden Moai sound -->
+<audio id="moaiSound" preload="auto" style="display:none">
+  <source src="data:audio/mp3;base64,SUQzAwAAAAAAF1RTU0MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/9sAQwACAQEBAQECAQEBAgICAgQDAgIDBQYDBAYGBgYGBwYGBggICQgJCgsKCQoLCwwMCwwMEAwMDQ4NDg4NDw8PDw8ODg4PEBAQEBAQEBAQEA/9sAQwECAgICAgQDAgIDBQYDBAYGBgYGBwYGBggICQgJCgsKCQoLCwwMCwwMEAwMDQ4NDg4NDw8PDw8ODg4PEBAQEBAQEBAQEA/wAARCAABAAEDAREAAhEBAxEB/8QAFwABAQEBAAAAAAAAAAAAAAAAAAIDBf/EABQBAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhADEAAAAdF/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPxA//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPxA//9k=" type="audio/mp3">
+</audio>
+
+<!-- Theme toggle button -->
+<button id="themeToggle" title="Toggle Light/Dark Theme">🌓</button>
 
 <script>
   let inputs = document.getElementById("inputs");
@@ -112,7 +187,6 @@
     document.getElementById("playback").style.display = "block";
     document.getElementById("title").remove();
 
-    // Clear any existing text
     document.getElementById("chatBox").innerHTML = "";
 
     startPlayback();
@@ -122,16 +196,43 @@
     location.reload();
   };
 
+  // Theme toggle logic
+  const themeToggleBtn = document.getElementById("themeToggle");
+  themeToggleBtn.onclick = () => {
+    document.body.classList.toggle("light");
+  };
+
+  // Hidden moai sound audio element
+  const moaiSound = document.getElementById("moaiSound");
+
+  // Text-to-speech function
+  function speakText(text) {
+    if (!text) return;
+    window.speechSynthesis.cancel();
+
+    let utterance = new SpeechSynthesisUtterance(text);
+
+    let voices = window.speechSynthesis.getVoices();
+    let preferredVoice = voices.find(v => v.lang === "en-US" && v.name.toLowerCase().includes("female"));
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    utterance.pitch = 1.2;
+    utterance.rate = 1.1;
+
+    window.speechSynthesis.speak(utterance);
+  }
+
   function startPlayback() {
     let chatBox = document.getElementById("chatBox");
     let entries = conversation
-      .map(e => [e.face.value, e.msg.value])
+      .map(e => [e.face.value.trim(), e.msg.value.trim()])
       .filter(([f, m]) => f && m);
 
     let i = 0;
 
     function showNext() {
       if (i >= entries.length) return;
+
       let [face, msg] = entries[i];
 
       // Alternate sides
@@ -140,8 +241,17 @@
         ? `<div class="face">${face}</div><div class="msg">${msg}</div>`
         : `<div class="msg">${msg}</div><div class="face">${face}</div>`;
 
+      // Play moai sound if face is 🗿 else normal TTS
+      if (face === "🗿") {
+        window.speechSynthesis.cancel();
+        moaiSound.currentTime = 0;
+        moaiSound.play();
+      } else {
+        speakText(msg);
+      }
+
       i++;
-      let delay = 1000 + msg.trim().split(" ").length * 500;
+      let delay = 1000 + msg.split(" ").length * 500;
       setTimeout(showNext, delay);
     }
 
