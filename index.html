@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Conversation Maker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 10px;
+      background: #111;
+      color: #fff;
+      margin: 0;
+    }
+    input {
+      padding: 10px;
+      margin: 5px 0;
+      font-size: 18px;
+      width: 48%;
+      box-sizing: border-box;
+    }
+    #inputs {
+      margin-bottom: 20px;
+    }
+    #startBtn {
+      padding: 12px 24px;
+      font-size: 20px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+    #playback {
+      display: none;
+      font-size: 24px;
+      text-align: center;
+      margin-top: 100px;
+    }
+    .line {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      min-height: 50px;
+    }
+    .face {
+      width: 2em;
+      margin: 0 10px;
+    }
+    .msg {
+      max-width: 60%;
+      word-break: break-word;
+    }
+    #backBtn {
+      position: fixed;
+      top: 0; left: 0;
+      width: 60px; height: 60px;
+      opacity: 0; z-index: 999;
+    }
+
+    @media (max-width: 600px) {
+      input {
+        font-size: 16px;
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      .msg {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="title">Chat(2 person)</h1>
+<div id="inputs"></div>
+<button id="startBtn">Start ▶️</button>
+
+<div id="playback">
+  <div id="backBtn"></div>
+  <div id="chatBox" class="line"></div>
+</div>
+
+<script>
+  let inputs = document.getElementById("inputs");
+  let conversation = [];
+
+  function createInput(index) {
+    let face = document.createElement("input");
+    face.placeholder = "🙂";
+    face.maxLength = 2;
+
+    let msg = document.createElement("input");
+    msg.placeholder = "Say something...";
+
+    face.oninput = msg.oninput = () => {
+      if (index === conversation.length - 1) {
+        createInput(conversation.length);
+      }
+    };
+
+    conversation.push({face, msg});
+    inputs.appendChild(face);
+    inputs.appendChild(msg);
+    inputs.appendChild(document.createElement("br"));
+  }
+
+  createInput(0); // Start with one set
+
+  document.getElementById("startBtn").onclick = () => {
+    document.getElementById("inputs").style.display = "none";
+    document.getElementById("startBtn").style.display = "none";
+    document.getElementById("playback").style.display = "block";
+    document.getElementById("title").remove();
+
+    // Clear any existing text
+    document.getElementById("chatBox").innerHTML = "";
+
+    startPlayback();
+  };
+
+  document.getElementById("backBtn").onclick = () => {
+    location.reload();
+  };
+
+  function startPlayback() {
+    let chatBox = document.getElementById("chatBox");
+    let entries = conversation
+      .map(e => [e.face.value, e.msg.value])
+      .filter(([f, m]) => f && m);
+
+    let i = 0;
+
+    function showNext() {
+      if (i >= entries.length) return;
+      let [face, msg] = entries[i];
+
+      // Alternate sides
+      let left = i % 2 === 0;
+      chatBox.innerHTML = left
+        ? `<div class="face">${face}</div><div class="msg">${msg}</div>`
+        : `<div class="msg">${msg}</div><div class="face">${face}</div>`;
+
+      i++;
+      let delay = 1000 + msg.trim().split(" ").length * 500;
+      setTimeout(showNext, delay);
+    }
+
+    showNext();
+  }
+</script>
+
+</body>
+</html>
